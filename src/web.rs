@@ -3,6 +3,8 @@ use tokio;
 use reqwest::blocking::get;
 use scraper::{Html, Selector};
 use vader_sentiment::SentimentIntensityAnalyzer;
+use std::sync::{Arc, Mutex};
+use futures::future::join_all;
 
 /// the struct to format our search result
 ///
@@ -13,17 +15,38 @@ use vader_sentiment::SentimentIntensityAnalyzer;
 /// - 'frequency': the frequency of the keyword that we are searching
 /// - 'update_time': the latest update time of the website
 /// - 'result_list': a vector that stores tuples of (keyword context, sentiment analysis)
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ReportEntry{
     title: String,
     url: String,
     snippet: String,
     frequency: usize,
     update_time: String,
-    pub(crate) results_list: Vec<(String, String)>
+    results_list: Vec<(String, String)>
 }
 
-/// doing single keyword search on a single webpage
+impl ReportEntry {
+    pub fn title(&self) -> &str {
+        &self.title
+    }
+    pub fn url(&self) -> &str {
+        &self.url
+    }
+    pub fn snippet(&self) -> &str {
+        &self.snippet
+    }
+    pub fn frequency(&self) -> usize {
+        self.frequency
+    }
+    pub fn update_time(&self) -> &str {
+        &self.update_time
+    }
+    pub fn results_list(&self) -> &Vec<(String, String)> {
+        &self.results_list
+    }
+}
+
+/// doing keyword search on a single webpage
 ///
 /// # parameters
 /// - 'url': the url of the website that we will search
@@ -31,7 +54,7 @@ pub struct ReportEntry{
 ///
 ///  # return value
 /// a struct that has everything we need or an error
-pub async fn single_webpage_single_keyword(url: &str, keyword: &str) -> Result<ReportEntry, Box<dyn Error>> {
+pub async fn single_webpage_search(keyword: String, url: &str) -> Result<ReportEntry, Box<dyn Error>> {
     // let the thread pool take care of the blocking code
     tokio::task::block_in_place(|| -> Result<ReportEntry, Box<dyn Error>> {
         // the website's source code
@@ -54,13 +77,21 @@ pub async fn single_webpage_single_keyword(url: &str, keyword: &str) -> Result<R
             // iterate through the what's inside <body>
             if let Some(body) = html.select(&body_selector).next() {
                 // obtain the text content of <body>
-                let body_text = body.text().collect::<Vec<_>>();
+                let body_text = body.text().collect::<Vec<&str>>();
 
                 // search for the keyword
                 for element in body_text {
-                    if element.contains(keyword) {
+                    if let Some(pos) = element.find(&keyword[..]) {
                         frequency += 1;
-                        results_list.push((String::from(element), format!("{:?}", analyzer.polarity_scores(element))));
+                        let mut extracted_text = element;
+                        // if the element (the text node) is too long, we only take a slice containing the keyword
+                        if element.chars().count() > 70{
+                            extracted_text = &element[pos..];
+                            if extracted_text.chars().count() > 70{
+                                extracted_text = &extracted_text[0..70];
+                            }
+                        }
+                        results_list.push((String::from(extracted_text), format!("{:?}", analyzer.polarity_scores(element))));
                     }
                 }
             } else { println!("cannot find the <body> element"); }
@@ -110,6 +141,81 @@ pub async fn single_webpage_single_keyword(url: &str, keyword: &str) -> Result<R
     })
 }
 
-pub async fn web_main() {
 
+/// parsing the input parameters and create asynchronous tasks to send requests
+///
+/// # parameters
+/// - 'keyword': the keyword that we want to search
+/// - 'websites': the websites that we search on
+///
+///  # return value
+/// a vector of struct that contains search results from multiple websites
+pub async fn web_main(keyword: &str, websites: &str) -> Result<Vec<ReportEntry>, Box<dyn Error>> {
+    let mut websites_vec: Vec<String> = vec![];
+    if websites == "" {
+        // if the user left the websites field blank intentionally, then we need to google the keyword for some websites
+        // construct the search url
+        let url = format!(
+            "https://www.google.com/search?q={}&num=100",
+            keyword.replace(" ", "+")
+        );
+
+        // send a request
+        let response = reqwest::get(&url).await?.text().await?;
+
+        // parsing html
+        let html = Html::parse_document(&response);
+        // locate all "a" elements containing the urls
+        if let Ok(selector) = Selector::parse("div.egMi0.kCrYT > a"){
+            for a_element in html.select(&selector){
+                // locate the href attribute of "a" and take a slice of it
+                if let Some(href) = a_element.value().attr("href") {
+                    if let Some(start) = href.find("?q=") {
+                        // start from ?q=
+                        let sub_str = &href[start + 3..];
+
+                        // end at &
+                        if let Some(end) = sub_str.find('&') {
+                            websites_vec.push(String::from(&sub_str[..end]));
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        // parsing the input parameters
+        websites_vec = websites.split(' ').map(|s| String::from(s)).collect();
+    }
+
+    // define a vector that contains the result we want to return
+    let result_vec: Arc<Mutex<Vec<ReportEntry>>> = Arc::new(Mutex::new(vec![]));
+
+    // define a vector to store all async tasks
+    let mut tasks = vec![];
+
+    for a_website in websites_vec{
+        let vec_clone = Arc::clone(&result_vec);
+        let keyword_per_search = String::from(keyword);
+        tasks.push(
+            tokio::spawn(async move {
+                if let Ok(report_entry) = single_webpage_search(keyword_per_search, &a_website[..]).await{
+                    //if the ReportEntry is not empty, then it is valid
+                    if report_entry.frequency() != 0{
+                        if let Ok(mut vec) = vec_clone.lock(){
+                            vec.push(report_entry);
+                        };
+                    }
+                }
+            })
+        );
+    }
+
+    // wait until all tasks are finished
+    let _ = join_all(tasks).await;
+
+    let vec_clone = Arc::clone(&result_vec);
+    if let Ok(vec) = vec_clone.lock(){
+        return Ok(vec.clone());
+    }
+    return Ok(vec![]);
 }
