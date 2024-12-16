@@ -1,6 +1,6 @@
 use std::error::Error;
 use tokio;
-use reqwest::blocking::get;
+use reqwest;
 use scraper::{Html, Selector};
 use vader_sentiment::SentimentIntensityAnalyzer;
 use std::sync::{Arc, Mutex};
@@ -55,10 +55,9 @@ impl ReportEntry {
 ///  # return value
 /// a struct that has everything we need or an error
 pub async fn single_webpage_search(keyword: String, url: &str) -> Result<ReportEntry, Box<dyn Error>> {
-    // let the thread pool take care of the blocking code
-    tokio::task::block_in_place(|| -> Result<ReportEntry, Box<dyn Error>> {
+
         // the website's source code
-        let response = get(url)?.text()?;
+        let response = reqwest::get(url).await?.text().await?;
         // parsing HTML source code
         let html = Html::parse_document(&response);
 
@@ -83,15 +82,15 @@ pub async fn single_webpage_search(keyword: String, url: &str) -> Result<ReportE
                 for element in body_text {
                     if let Some(pos) = element.find(&keyword[..]) {
                         frequency += 1;
-                        let mut extracted_text = element;
+                        let mut extracted_text = String::from(element);
                         // if the element (the text node) is too long, we only take a slice containing the keyword
-                        if element.chars().count() > 70{
-                            extracted_text = &element[pos..];
+                        if extracted_text.chars().count() > 70{
+                            extracted_text = String::from(&extracted_text[pos..]);
                             if extracted_text.chars().count() > 70{
-                                extracted_text = &extracted_text[0..70];
+                                extracted_text = extracted_text.chars().take(70).collect::<String>();
                             }
                         }
-                        results_list.push((String::from(extracted_text), format!("{:?}", analyzer.polarity_scores(element))));
+                        results_list.push((extracted_text, format!("{:?}", analyzer.polarity_scores(element))));
                     }
                 }
             } else { println!("cannot find the <body> element"); }
@@ -138,7 +137,6 @@ pub async fn single_webpage_search(keyword: String, url: &str) -> Result<ReportE
             update_time,
             results_list
         })
-    })
 }
 
 
@@ -157,7 +155,7 @@ pub async fn web_main(keyword: &str, websites: &str) -> Result<Vec<ReportEntry>,
         // construct the search url
         let url = format!(
             "https://www.google.com/search?q={}&num=100",
-            keyword.replace(" ", "+")
+            keyword.replace(" ", "+").replace("/","+")
         );
 
         // send a request
@@ -195,10 +193,14 @@ pub async fn web_main(keyword: &str, websites: &str) -> Result<Vec<ReportEntry>,
 
     for a_website in websites_vec{
         let vec_clone = Arc::clone(&result_vec);
-        let keyword_per_search = String::from(keyword);
+        let mut kwd_for_pattern_matching = String::from(keyword);
+        // if the user want to separate the context from the actual item, a '/' will appear
+        if let Some(pos) = keyword.find('/'){
+            kwd_for_pattern_matching = String::from(&keyword[pos..]);
+        }
         tasks.push(
             tokio::spawn(async move {
-                if let Ok(report_entry) = single_webpage_search(keyword_per_search, &a_website[..]).await{
+                if let Ok(report_entry) = single_webpage_search(kwd_for_pattern_matching, &a_website[..]).await{
                     //if the ReportEntry is not empty, then it is valid
                     if report_entry.frequency() != 0{
                         if let Ok(mut vec) = vec_clone.lock(){
