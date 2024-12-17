@@ -30,7 +30,7 @@ In short, data itself is not that valuable, the true treasure is what it reveals
 
 #### 1. Search for game characters
 
-I believe every boy loves video games, I am not an exception. Sometimes I try hard to get the new information of my beloved games (like Wuthering Wave, Monster Hunter), but most of the time I get garbage information. This is because the information that I need may occur on different websites, and the time it occur is arbitrary, not to mention I have to spend a few minutes scrolling down a certain website to find out where it is. As a human, I cannot monitor certain websites 24-7, and the worst thing is, I myself may not know where the information is. I hope someone could do it for me and hand in the report, and that is where a web crawler comes in.
+I believe every boy loves video games, I am not an exception. Sometimes I try hard to get the new information of my beloved games (like Street Fighter), but most of the time I get garbage information. This is because the information that I need may occur on different websites, and the time it occur is arbitrary, not to mention I have to spend a few minutes scrolling down a certain website to find out where it is. As a human, I cannot monitor certain websites 24-7, and the worst thing is, I myself may not know where the information is. I hope someone could do it for me and hand in the report, and that is where a web crawler comes in.
 
 #### 2. Learning to build a web crawler is beneficial
 
@@ -122,3 +122,137 @@ Sentiment { pos: 0.59, neu: 0.41, neg: 0.0, compound: 0.8442 }
 ```
 
 ### 5. Text user interface
+
+The text user interface looks like this:
+
+![Text UI](img/UI.png "Text UI")
+
+And the search results will be shown in this way:
+
+![search results](img/search results.png "search results")
+
+## User's guide
+
+### 1. Build the project
+
+In this GitHub repository,
+
+1. click the "code" button
+2. click the "Download Zip" button
+
+![github user guide](img/github user guide.png "github user guide")
+
+3. unzip the WebCrawler-master.zip
+
+4. open your command line and change the directory to:
+
+```
+the_directory_where_you_put_the_unzipped_folder\WebCrawler-master\WebCrawler-master
+```
+
+In Linux (Ubuntu), this step can be done by:
+
+a. press Ctrl + Alt + T to open the command line
+
+b. input the following command and press Enter
+
+```
+cd the_directory_where_you_put_the_unzipped_folder/WebCrawler-master/WebCrawler-master
+```
+
+In Windows, it can be done by:
+
+a. press Win + R
+
+b. input "cmd" and press Enter
+
+![windows cmd](img/windows cmd.png "windows cmd")
+
+c. input the following command and press Enter
+
+```
+cd the_directory_where_you_put_the_unzipped_folder\WebCrawler-master\WebCrawler-master
+```
+
+5. input the following command and press Enter
+
+```
+cargo build
+```
+
+note: 
+
+a. this command may take about 2 minutes to run, please be patient
+
+b. if you have not installed Rust on your computer yet, please follow the instructions on: https://www.rust-lang.org/tools/install
+
+### 2. Run the project
+
+In the same directory, input the following command in your command line and press Enter
+
+```
+cargo run
+```
+
+Wait about 30 seconds, if you see the following text user interface, congratulations! You have already booted the web crawler
+
+![Text UI](img/UI.png "Text UI")
+
+### 3. Let's craw
+
+![UI Instruction](img/UI Instruction.png "UI Instruction")
+
+1. this is where you input the keyword you want to search, for example
+
+```rust
+Ken //this is a keyword
+```
+
+​		you need to notice that this keyword is case sensitive.
+
+​		if you want to search multiple words, sure, just separate them with a ' ' like this
+
+```
+Ken Cammy Ryu//this keyword contains two words
+```
+
+​		you may also find that a lot of results are not relevant, try to separate the context from the actual item you want to craw!
+
+​		for example,
+
+```
+Street Fighter/Ken
+```
+
+​		this command will craw the text containing "Ken", but it will only craw from those websites which are related to "Street Fighter Ken"
+
+2. this is where you input the websites that you want to craw
+
+​		for example,
+
+```
+https://google.com //this is a website to craw
+```
+
+​		without doubt, you can also craw multiple websites, just separate them with a ' ' like this
+
+```
+https://google.com https://youtube.com //craw two websites at a time
+```
+
+​		note: however, this input box is **not necessary**, if you don't know which websites to craw, just leave it blank, the web crawler will 		generate a few for you
+
+3. this button starts the crawling process
+
+​		after pressing this button, the textboxes and the buttons will be **disabled** to avoid errors, just wait a few seconds
+
+4. this area shows the craw result, the content may not be complete if it is more than 3000 characters, but don't worry, **the content that you export will be complete**
+5. this button exports the result to "craw result.txt" in the same directory that we run this project
+
+## Lessons Learned and Concluding Remarks
+
+1. the error of dangling reference seems to be the most frequent in my debugging process, this type of error occurs especially when there are closures in my code, as the closure may conduct some asynchronous tasks, it may live longer than the thread that calls the closure, so it is very important to:
+   - a. use move keyword to move the ownership into the closure to avoid dangling reference
+   - b. clone the data if we don't want to move the ownership into the closure
+2. everything inside the async function should implement the "Send" trait, otherwise they cannot be send between threads safely
+3. Rust is great, despite its long compile time, it almost do not fail at run time. But it is hard to learn Rust by oneself. I am very grateful having the opportunity to take 1724 Performant Software Systems with Rust this fall, and I also appreciate very much the great effort made by Professor. Li and his TAs, they have made all this possible, thank you!
