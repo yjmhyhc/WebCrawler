@@ -8,6 +8,8 @@ student number: 1010373301
 
 email address: hc.yang@mail.utoronto.ca
 
+the images of this README.md can only be seen when you read on GitHub, sorry for the inconvenience
+
 ## Motivation
 
 ### Why a web crawler is worth developing?
