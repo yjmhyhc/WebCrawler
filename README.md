@@ -258,3 +258,7 @@ https://google.com https://youtube.com //craw two websites at a time
    - b. clone the data if we don't want to move the ownership into the closure
 2. everything inside the async function should implement the "Send" trait, otherwise they cannot be send between threads safely
 3. Rust is great, despite its long compile time, it almost do not fail at run time. But it is hard to learn Rust by oneself. I am very grateful having the opportunity to take 1724 Performant Software Systems with Rust this fall, and I also appreciate very much the great effort made by Professor. Li and his TAs, they have made all this possible, thank you!
+
+# Video Demo
+
+https://drive.google.com/file/d/17SAhFLnkmL4H2ECAj1_eiy6cyfIAUHIf/view?usp=sharing
