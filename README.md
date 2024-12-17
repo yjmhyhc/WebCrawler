@@ -125,11 +125,11 @@ Sentiment { pos: 0.59, neu: 0.41, neg: 0.0, compound: 0.8442 }
 
 The text user interface looks like this:
 
-![Text UI](img/UI.png "Text UI")
+![Text UI](https://github.com/yjmhyhc/WebCrawler/blob/master/img/UI.png "Text UI")
 
 And the search results will be shown in this way:
 
-![search results](img/search results.png "search results")
+![search results](https://github.com/yjmhyhc/WebCrawler/blob/master/img/search%20results.png "search results")
 
 ## User's guide
 
@@ -140,7 +140,7 @@ In this GitHub repository,
 1. click the "code" button
 2. click the "Download Zip" button
 
-![github user guide](img/github user guide.png "github user guide")
+![github user guide](https://github.com/yjmhyhc/WebCrawler/blob/master/img/github%20user%20guide.png "github user guide")
 
 3. unzip the WebCrawler-master.zip
 
@@ -166,7 +166,7 @@ a. press Win + R
 
 b. input "cmd" and press Enter
 
-![windows cmd](img/windows cmd.png "windows cmd")
+![windows cmd](https://github.com/yjmhyhc/WebCrawler/blob/master/img/windows%20cmd.png "windows cmd")
 
 c. input the following command and press Enter
 
@@ -196,11 +196,11 @@ cargo run
 
 Wait about 30 seconds, if you see the following text user interface, congratulations! You have already booted the web crawler
 
-![Text UI](img/UI.png "Text UI")
+![Text UI](https://github.com/yjmhyhc/WebCrawler/blob/master/img/UI.png "Text UI")
 
 ### 3. Let's craw
 
-![UI Instruction](img/UI Instruction.png "UI Instruction")
+![UI Instruction](https://github.com/yjmhyhc/WebCrawler/blob/master/img/UI%20Instruction.png "UI Instruction")
 
 1. this is where you input the keyword you want to search, for example
 
